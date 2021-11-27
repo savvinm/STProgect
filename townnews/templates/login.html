@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+{% load static %}
+<html>
+<head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="{% static "css/login.css"%}"/>
+    <title>Авторизация</title>
+</head>
+<body>
+  <div class="container">
+    <div class="loginform">
+      <form class="log_form" method="post">
+        {% csrf_token %}
+        <div class="">
+          <div class="loginfield">
+            <div>{{form.login}}</div>
+          </div>
+          <div class="loginfield">
+            <div>{{form.password}}</div>
+          </div>
+        </div>
+        <input type="submit" class="loginButton" value = "Войти">
+        {% if message != "" %}
+          <p>{{message}}</p>
+        {% endif%}
+      </form>
+    </div>
+  </div>
+</body>
+</html>

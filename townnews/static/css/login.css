@@ -1,0 +1,51 @@
+.container{
+  margin: 0 auto;
+  width: 80%;
+}
+.log_form{
+  text-align: center;
+  margin-top: 150px;
+}
+.loginfield{
+
+}
+.loginfield input{
+  outline: none;
+  border: none;
+  width: 300px;
+  margin-top: 10px;
+  font-size: 17px;
+  appearance: none;
+  border: 0;
+  border-radius: 15px;
+  background: #444741;
+  color: #fff;
+  padding: 8px 16px;
+}
+.loginfield input:hover {
+  background: #1E1C1F;
+}
+.loginfield input::placeholder{
+  color: #AFAFAF
+}
+.loginButton{
+  width: 330px;
+  height: 50px;
+  margin-top: 20px;
+  font-size: 17px;
+  appearance: none;
+  border: 0;
+  border-radius: 15px;
+  background: #444741;
+  color: #fff;
+  padding: 8px 16px;
+}
+
+.loginButton:hover {
+  background: #1E1C1F;
+}
+
+.loginButton:focus {
+  outline: none;
+  box-shadow: 0 0 0 4px #cbd6ee;
+}
