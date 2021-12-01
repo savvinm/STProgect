@@ -4,8 +4,15 @@
   font-family: Verdana;
   font-size: 18px;
 }
+.logintext{
+  margin-left: 20px;
+  font-size: 12px;
+  margin-top: 0px;
+}
 .menu ul li{
   display: inline-block;
+  height: 20px;
+  vertical-align: top;
 }
 .menu a{
   display: block;

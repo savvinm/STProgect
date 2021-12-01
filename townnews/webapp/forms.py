@@ -6,10 +6,10 @@ class LoginForm(forms.Form):
 
 class NewsForm(forms.Form):
     title = forms.CharField(widget=forms.TextInput(attrs={'placeholder': 'Заголовок'}))
-    tags = forms.CharField(widget=forms.TextInput(attrs={'placeholder': 'Теги новости'}))
+    tags = forms.CharField(widget=forms.TextInput(attrs={'placeholder': 'Тег новости'}))
     image = forms.ImageField()
     text = forms.CharField(widget=forms.Textarea(attrs={'placeholder': 'Текст записи'}))
-    
+
 class PromoForm(forms.Form):
     title = forms.CharField(widget=forms.TextInput(attrs={'placeholder': 'Заголовок'}))
     code = forms.CharField(widget=forms.TextInput(attrs={'placeholder': 'Промокод'}))

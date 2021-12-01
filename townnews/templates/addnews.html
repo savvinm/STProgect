@@ -12,7 +12,7 @@
   <div class="container">
     <div class="formspace">
       <h3 class="addlabel"> Добавление новостной записи<h3>
-      <form class="add_form" method="post">
+      <form class="add_form" method="post" enctype="multipart/form-data">
         {% csrf_token %}
         <div class="">
           {% for field in form %}
