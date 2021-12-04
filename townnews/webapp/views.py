@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect
 from django.core.files.storage import FileSystemStorage
 from django.http import HttpResponse, HttpResponseNotFound, Http404, HttpResponseRedirect
 from .forms import LoginForm, NewsForm, PromoForm
-from .models import Admin, Resources, NewsArticles, City
+from .models import Admin, Resources, NewsArticles, City, Promo
 from hashlib import sha256, sha1
 import datetime
 
@@ -61,7 +61,7 @@ def addnews(request):
                 fs = FileSystemStorage()
                 dt_now = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
                 imgname = sha1((dt_now + image.name).encode('utf-8')).hexdigest()
-                filename = "static/images/" + imgname + "." + name[-1]
+                filename = "static/images/articles/" + imgname + "." + name[-1]
                 path = fs.save(filename, image)
                 resource = Resources()
                 resource.path = filename
@@ -76,7 +76,7 @@ def addnews(request):
                 article.creationTime = cr_time
                 article.city = City.objects.get(id=request.session['city_id'])
                 article.save()
-                
+
                 return HttpResponse("<h2>Новая запись {0} создана</h2>".format(title))
             else:
                 city = request.session['city']
@@ -92,10 +92,35 @@ def addpromo(request):
                     if request.method == "POST":
                         title = request.POST.get("title")
                         code = request.POST.get("code")
-                        image = request.POST.get("image")
-                        return HttpResponse("<h2>Новое промо {0} создано</h2>".format(title))
+                        image = request.FILES["image"]
+                        expirationMonth = request.POST.get("expirationDate_month")
+                        expirationDay = request.POST.get("expirationDate_day")
+                        expirationYear = request.POST.get("expirationDate_year")
+
+                        name = image.name.split(".")
+                        fs = FileSystemStorage()
+                        dt_now = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+                        imgname = sha1((dt_now + image.name).encode('utf-8')).hexdigest()
+                        filename = "static/images/promo/" + imgname + "." + name[-1]
+                        path = fs.save(filename, image)
+                        resource = Resources()
+                        resource.path = filename
+                        resource.save()
+
+                        promo = Promo()
+                        promo.title = title
+                        promo.promocode = code
+                        promo.image = Resources.objects.get(path=filename)
+                        cr_time = datetime.datetime.now().isoformat(' ', 'seconds')
+                        promo.creationTime = cr_time
+                        ex_time = datetime.date(int(expirationYear), int(expirationMonth), int(expirationDay))
+                        promo.expirationTime = ex_time
+                        promo.city = City.objects.get(id=request.session['city_id'])
+                        promo.save()
+
+                        return HttpResponse("<h2>Новое промо {0} создано</h2>".format(ex_time))
                     else:
-                        promoform = PromoForm()
+                        promoform = PromoForm(request.POST, request.FILES)
                         city = request.session['city']
                         return render(request, "addpromo.html", {"form": promoform, "city":city, "login": login})
         except KeyError:

@@ -15,11 +15,18 @@
       <form class="add_form" method="post" enctype="multipart/form-data">
         {% csrf_token %}
         <div class="">
-          {% for field in form %}
           <div class="addfield">
-            <div>{{field}}</div>
+            <div>{{form.title}}</div>
           </div>
-          {% endfor %}
+          <div class="addfield">
+            <div>{{form.code}}</div>
+          </div>
+          <div class="addfield">
+            <div>{{form.image}}</div>
+          </div>
+          <div class="addfield">
+            <div>Дата окончания: {{form.expirationDate}}</div>
+          </div>
         </div>
         <input type="submit" class="addButton" value = "Добавить промо">
       </form>

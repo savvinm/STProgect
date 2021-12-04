@@ -19,3 +19,11 @@ class NewsArticles(models.Model):
     mainText = models.TextField()
     creationTime = models.DateTimeField()
     city = models.ForeignKey(City, on_delete=models.CASCADE)
+
+class Promo(models.Model):
+    title = models.CharField(max_length=128)
+    image = models.ForeignKey(Resources, on_delete=models.CASCADE)
+    promocode = models.CharField(max_length=64)
+    creationTime = models.DateTimeField()
+    expirationTime = models.DateField()
+    city = models.ForeignKey(City, on_delete=models.CASCADE)
