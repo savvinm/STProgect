@@ -22,5 +22,6 @@ urlpatterns = [
     path('addnews', views.addnews),
     path('addpromo', views.addpromo),
     path('login', views.login),
+    path('cleaner', views.clearPriority),
     path('', views.index),
 ]

@@ -10,9 +10,15 @@
   {% include "header.html" %}
   <div class="container">
     <div class="tag_selection">
-      <button type="button">*Фильтр*</button>
-      <form action="">
-          <button type="submit">Сохранить</button>
+      <form class="tag_form" method="post">
+        {% csrf_token %}
+        <div class="">
+          <div class="addfield">
+            <div>{{form.tag}} <a class="clean_link" href="/cleaner"><img class="cross_logo" src="/static/images/cross.png" width="20"
+                                  height="20"></a></div>
+          </div>
+        </div>
+        <input type="submit" class="saveButton" value = "Сохранить">
       </form>
     </div>
     <div class="nav_options">

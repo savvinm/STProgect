@@ -1,20 +1,78 @@
 from django.shortcuts import render, redirect
 from django.core.files.storage import FileSystemStorage
 from django.http import HttpResponse, HttpResponseNotFound, Http404, HttpResponseRedirect
-from .forms import LoginForm, NewsForm, PromoForm
-from .models import Admin, Resources, NewsArticles, City, Promo
+from .forms import LoginForm, NewsForm, PromoForm, TagForm
+from .models import Admin, Resources, NewsArticles, City, Promo, Tag
 from hashlib import sha256, sha1
 import datetime
 
+def TagsToSelect():
+    CHOICES = []
+    tags = Tag.objects.all()
+    for tag in tags:
+        choice = (tag.id, tag.title)
+        CHOICES.append(choice)
+    return CHOICES
+def TagsWithPriority():
+    CHOICES = []
+    tagsList = list(Tag.objects.all())
+    priority = False
+    priorityId = 0
+    for tag in tagsList:
+        if(tag.important == 1):
+            priority = True
+            priorityId = tag.id
+    if(priority):
+        CHOICES.append((tagsList[priorityId-1].id, tagsList[priorityId-1].title))
+        for tag in tagsList:
+            if(tag.id != priorityId):
+                choice = (tag.id, tag.title)
+                CHOICES.append(choice)
+    else:
+        CHOICES.append((0, "Приоритетный тег не выбран"))
+        for tag in tagsList:
+            choice = (tag.id, tag.title)
+            CHOICES.append(choice)
+    return CHOICES
+
+def clearTag():
+    try:
+        tag = Tag.objects.get(important=1)
+        tag.important = 0
+        tag.save()
+        return
+    except Tag.DoesNotExist:
+        return
 def index(request):
     try:
         login = request.session['login']
         if(login):
-            city = request.session['city']
-            return render(request, "index.html",{"city":city, "login": login})
+            if request.method == "POST":
+                tagId = request.POST.get("tag")
+                if(int(tagId) != 0):
+                    clearTag()
+                    tag = Tag.objects.get(id=tagId)
+                    tag.important = 1
+                    tag.save()
+                city = request.session['city']
+                tagform = TagForm()
+                tagform.fields["tag"].choices = TagsWithPriority()
+                return render(request, "index.html",{"form": tagform, "city":city, "login": login})
+            else:
+                city = request.session['city']
+                tagform = TagForm()
+                tagform.fields["tag"].choices = TagsWithPriority()
+                return render(request, "index.html",{"form": tagform, "city":city, "login": login})
     except KeyError:
         raise Http404()
-
+def clearPriority(request):
+    try:
+        login = request.session['login']
+        if(login):
+            clearTag()
+            return HttpResponseRedirect('/')
+    except KeyError:
+        raise Http404()
 def login(request):
     try:
         login = request.session['login']
@@ -53,7 +111,7 @@ def addnews(request):
         if(login):
             if request.method == "POST" and request.FILES:
                 title = request.POST.get("title")
-                tags = request.POST.get("tags")
+                tag = request.POST.get("tag")
                 image = request.FILES["image"]
                 text = request.POST.get("text")
 
@@ -69,18 +127,18 @@ def addnews(request):
 
                 article = NewsArticles()
                 article.title = title
-                article.tags = tags
+                article.tag = Tag.objects.get(id=tag)
                 article.image = Resources.objects.get(path=filename)
                 article.mainText = text
                 cr_time = datetime.datetime.now().isoformat(' ', 'seconds')
                 article.creationTime = cr_time
                 article.city = City.objects.get(id=request.session['city_id'])
                 article.save()
-
-                return HttpResponse("<h2>Новая запись {0} создана</h2>".format(title))
+                return HttpResponseRedirect('/')
             else:
                 city = request.session['city']
                 newsform = NewsForm(request.POST, request.FILES)
+                newsform.fields["tag"].choices = TagsToSelect()
                 return render(request, "addnews.html", {"form": newsform, "city":city, "login": login})
     except KeyError:
         raise Http404()
@@ -118,7 +176,7 @@ def addpromo(request):
                         promo.city = City.objects.get(id=request.session['city_id'])
                         promo.save()
 
-                        return HttpResponse("<h2>Новое промо {0} создано</h2>".format(ex_time))
+                        return HttpResponseRedirect('/')
                     else:
                         promoform = PromoForm(request.POST, request.FILES)
                         city = request.session['city']

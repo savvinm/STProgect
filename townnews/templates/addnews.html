@@ -15,11 +15,18 @@
       <form class="add_form" method="post" enctype="multipart/form-data">
         {% csrf_token %}
         <div class="">
-          {% for field in form %}
           <div class="addfield">
-            <div>{{field}}</div>
+            <div>{{form.title}}</div>
           </div>
-          {% endfor %}
+          <div class="addfield">
+            <div>Тег новости: {{form.tag}}</div>
+          </div>
+          <div class="addfield">
+            <div>{{form.image}}</div>
+          </div>
+          <div class="addfield">
+            <div>{{form.text}}</div>
+          </div>
         </div>
         <input type="submit" class="addButton" value = "Добавить новость">
       </form>
