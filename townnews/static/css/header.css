@@ -1,8 +1,8 @@
 .header_content{
   display: flex;
   justify-content: space-around;
-  font-family: Verdana;
-  font-size: 18px;
+  /*font-family: Verdana;*/
+  font-size: 22px;
 }
 .logintext{
   margin-left: 20px;

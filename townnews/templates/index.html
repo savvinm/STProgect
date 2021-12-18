@@ -14,8 +14,11 @@
         {% csrf_token %}
         <div class="">
           <div class="addfield">
-            <div>{{form.tag}} <a class="clean_link" href="/cleaner"><img class="cross_logo" src="/static/images/cross.png" width="20"
-                                  height="20"></a></div>
+            {% if isTag %}
+              <div class="short_select">{{form.tag}} <a class="clean_link" href="/cleaner"><img class="cross_logo" src="/static/images/cross.png" width="20" height="20"></a></div>
+            {% else %}
+              <div class="long_select">{{form.tag}}</div>
+            {% endif %}
           </div>
         </div>
         <input type="submit" class="saveButton" value = "Сохранить">
@@ -24,7 +27,8 @@
     <div class="nav_options">
       <a href="addnews">Добавить новость</a>
       <a href="addpromo">Добавить промо</a>
-      <a href="">Просмотр новых объявлений</a>
+      <a href="newadverts">Просмотр новых объявлений</a>
+      <p class="advertsCountText">Объявлений ожидающих рассмотрения: {{advertsCount}}<p>
     </div>
   </div>
 </body>

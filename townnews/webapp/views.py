@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect
 from django.core.files.storage import FileSystemStorage
 from django.http import HttpResponse, HttpResponseNotFound, Http404, HttpResponseRedirect
 from .forms import LoginForm, NewsForm, PromoForm, TagForm
-from .models import Admin, Resources, NewsArticles, City, Promo, Tag
+from .models import Admin, Resources, NewsArticles, City, Promo, Tag, MissingPeople
 from hashlib import sha256, sha1
 import datetime
 
@@ -34,6 +34,9 @@ def TagsWithPriority():
             choice = (tag.id, tag.title)
             CHOICES.append(choice)
     return CHOICES
+def GetNewAdverts():
+    adverts = list(MissingPeople.objects.filter(status="moderating"))
+    return adverts
 
 def clearTag():
     try:
@@ -43,6 +46,12 @@ def clearTag():
         return
     except Tag.DoesNotExist:
         return
+def CheckTag():
+    try:
+        tag = Tag.objects.get(important=1)
+        return True
+    except Tag.DoesNotExist:
+        return False
 def index(request):
     try:
         login = request.session['login']
@@ -57,12 +66,12 @@ def index(request):
                 city = request.session['city']
                 tagform = TagForm()
                 tagform.fields["tag"].choices = TagsWithPriority()
-                return render(request, "index.html",{"form": tagform, "city":city, "login": login})
+                return render(request, "index.html",{"form": tagform, "isTag": CheckTag(), "advertsCount": len(GetNewAdverts()), "city":city, "login": login})
             else:
                 city = request.session['city']
                 tagform = TagForm()
                 tagform.fields["tag"].choices = TagsWithPriority()
-                return render(request, "index.html",{"form": tagform, "city":city, "login": login})
+                return render(request, "index.html",{"form": tagform, "isTag": CheckTag(), "advertsCount": len(GetNewAdverts()), "city":city, "login": login})
     except KeyError:
         raise Http404()
 def clearPriority(request):
@@ -183,3 +192,33 @@ def addpromo(request):
                         return render(request, "addpromo.html", {"form": promoform, "city":city, "login": login})
         except KeyError:
             raise Http404()
+
+def newadverts(request):
+    try:
+        login = request.session['login']
+        if(login):
+            adverts = GetNewAdverts()
+            city = request.session['city']
+            return render(request, "newadverts.html", {"adverts":adverts, "city":city, "login": login})
+    except KeyError:
+        raise Http404()
+def reject(request, id):
+        try:
+            login = request.session['login']
+            if(login):
+                advent = MissingPeople.objects.get(id=id)
+                advent.status = "rejected"
+                advent.save()
+                return HttpResponseRedirect('/newadverts')
+        except KeyError:
+            raise Http404()
+def accept(request, id):
+    try:
+        login = request.session['login']
+        if(login):
+            advent = MissingPeople.objects.get(id=id)
+            advent.status = "accepted"
+            advent.save()
+            return HttpResponseRedirect('/newadverts')
+    except KeyError:
+        raise Http404()

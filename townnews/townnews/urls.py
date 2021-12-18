@@ -19,7 +19,10 @@ from django.urls import re_path
 from webapp import views
 
 urlpatterns = [
+    path('acc/<int:id>', views.accept),
+    path('rej/<int:id>', views.reject),
     path('addnews', views.addnews),
+    path('newadverts', views.newadverts),
     path('addpromo', views.addpromo),
     path('login', views.login),
     path('cleaner', views.clearPriority),

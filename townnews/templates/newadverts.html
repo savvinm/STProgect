@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+{% load static %}
+<html>
+<head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="{% static "css/adverts.css"%}">
+    <title>Новые объявления</title>
+</head>
+<body>
+  {% include "header.html" %}
+  <div class="container">
+    <div class="adverts">
+      {% for ad in adverts %}
+      <div class="advert">
+        <div class="image_box">
+          <div class="ad_image">
+            <img src={{ad.image.path}} width="100" height="100">
+          </div>
+          <div class="image_text">
+            <p>ФИО: {{ad.name}}
+            <p>Дата рождения: {{ad.dateOfBirth}}
+            <p>Пол: {{ad.sex}}
+          </div>
+        </div>
+        <p>Приметы: {{ad.characteristics}}
+        <p>Особые приметы: {{ad.specCharacteristics}}
+        <p>Был одет в: {{ad.clothes}}
+        <p>Последний раз видели: {{ad.lastLocation}}
+        <p>Телефон для связи: {{ad.telephone}}
+      </div>
+      <a class="accept_link" href="acc/{{ad.id}}">Опубликовать</a><a class="reject_link" href="rej/{{ad.id}}">Отклонить</a>
+      {% endfor %}
+    </div>
+  </div>
+</body>
+</html>
