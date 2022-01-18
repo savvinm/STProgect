@@ -26,5 +26,10 @@ urlpatterns = [
     path('addpromo', views.addpromo),
     path('login', views.login),
     path('cleaner', views.clearPriority),
+    path('getimage/<str:imagePath>', views.getImage),
+    path('articleslist/<int:tag_id>', views.filterArticlesList),
+    path('promoslist', views.promosList),
+    path('articleslist', views.articlesList),
+    path('missinglist', views.missingList),
     path('', views.index),
 ]

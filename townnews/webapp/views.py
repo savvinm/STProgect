@@ -4,7 +4,90 @@ from django.http import HttpResponse, HttpResponseNotFound, Http404, HttpRespons
 from .forms import LoginForm, NewsForm, PromoForm, TagForm
 from .models import Admin, Resources, NewsArticles, City, Promo, Tag, MissingPeople
 from hashlib import sha256, sha1
+from django.http import JsonResponse
+from PIL import Image
 import datetime
+
+
+def imageToJson(imagePath):
+    name = imagePath.split("/")
+    res = name[2] + "." + name[3]
+    return res
+
+def getImage(request, imagePath):
+    response = HttpResponse(content_type="image/png")
+    name = imagePath.split(".")
+    imagePath = "static/images/" + name[0] + "/" + name[1] + "." + name[2]
+    img = Image.open(imagePath)
+    img.save(response, 'png')
+    return response
+
+
+def missingList(request):
+    missing=MissingPeople.objects.all()
+    res = []
+    for mis in missing:
+        res.append({
+            'id': mis.id,
+            'name': mis.name,
+            'clothes': mis.clothes,
+            'specCharacteristics': mis.specCharacteristics,
+            'characteristics': mis.characteristics,
+            'lastLocation': mis.lastLocation,
+            'dateOfBirth': mis.dateOfBirth,
+            'sex': mis.sex,
+            'telephone': mis.telephone,
+            'imageUrl': imageToJson(str(mis.image.path)),
+            'city': str(mis.city.cityName),
+        })
+    return JsonResponse(res, safe=False)
+
+def promosList(request):
+    promos=Promo.objects.all()
+    res = []
+    for promo in promos:
+        if(promo.expirationTime > datetime.datetime.now().date()):
+            res.append({
+                'id': promo.id,
+                'title': promo.title,
+                'promocode': promo.promocode,
+                'expirationTime': promo.expirationTime,
+                'imageUrl': imageToJson(str(promo.image.path)),
+                'city': str(promo.city.cityName),
+            })
+    return JsonResponse(res, safe=False)
+
+def articlesList(request):
+    articles=NewsArticles.objects.all()
+    res = []
+    for article in articles:
+        res.append({
+            'id': article.id,
+            'title': article.title,
+            'content': article.mainText,
+            'creationTime': article.creationTime,
+            'tag': str(article.tag.title),
+            'imageUrl': imageToJson(str(article.image.path)),
+            'city': str(article.city.cityName),
+        })
+    return JsonResponse(res, safe=False)
+
+def filterArticlesList(request, tag_id):
+    articles=list(NewsArticles.objects.filter(tag=tag_id))
+    res = []
+    for article in articles:
+        res.append({
+            'id': article.id,
+            'title': article.title,
+            'content': article.mainText,
+            'creationTime': article.creationTime,
+            'tag': str(article.tag.title),
+            'imageUrl': imageToJson(str(article.image.path)),
+            'city': str(article.city.cityName),
+        })
+    return JsonResponse(res, safe=False)
+
+
 
 def TagsToSelect():
     CHOICES = []
