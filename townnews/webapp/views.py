@@ -1,12 +1,100 @@
 from django.shortcuts import render, redirect
 from django.core.files.storage import FileSystemStorage
+from django.core.files.base import ContentFile
+from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse, HttpResponseNotFound, Http404, HttpResponseRedirect
 from .forms import LoginForm, NewsForm, PromoForm, TagForm
-from .models import Admin, Resources, NewsArticles, City, Promo, Tag, MissingPeople
+from .models import Admin, Resources, NewsArticles, City, Promo, Tag, MissingPeople, User, Favorites
 from hashlib import sha256, sha1
 from django.http import JsonResponse
-from PIL import Image
+from PIL import Image, ExifTags
 import datetime
+import json
+import base64
+from datetime import timezone, timedelta
+
+timezone_offset = +3.0
+tzinfo = timezone(timedelta(hours=timezone_offset))
+months = {'1': "января",'2': "февраля",'3': "марта",'4': "апреля",'5': "мая",'6': "июня",'7': "июля",'8': "августа",'9': "сентября",'10': "октября",'11': "ноября",'12': "декабря"}
+
+@csrf_exempt
+def addMissingForUser(body, user):
+    missing = MissingPeople()
+    missing.name = body['name']
+    missing.clothes = body['clothes']
+    missing.characteristics = body['characteristics']
+    missing.specCharacteristics = body['specCharacteristics']
+    missing.lastLocation = body['lastLocation']
+    missing.sex = body['sex']
+    missing.creator = user
+    missing.dateOfBirth = body['dateOfBirth']
+    missing.telephone = body['phoneNumber']
+    missing.city = City.objects.get(cityName=body['city'])
+    missing.status="moderating"
+
+
+    dt_now = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+    imgname = sha1((dt_now + user.login).encode('utf-8')).hexdigest()
+    filename = "static/images/missing/" + imgname + ".jpg"
+    with open(filename, "wb") as fh:
+        fh.write(base64.b64decode(body["image"]))
+
+    resource = Resources()
+    resource.path = filename
+    resource.save()
+    missing.image = Resources.objects.get(path=filename)
+    try:
+        missing.save()
+        return True
+    except:
+        return False
+
+@csrf_exempt
+def addUser(uuiId):
+    if(uuiId != ""):
+        user = User()
+        user.login = uuiId
+        try:
+            user.save()
+            return True
+        except:
+            return False
+
+
+@csrf_exempt
+def deleteMissing(request, id, uuiId):
+    try:
+        user = User.objects.get(login=uuiId)
+        try:
+            missing = MissingPeople.objects.get(creator=user.id, id=id)
+            missing.status = "deleted"
+            missing.save()
+        except MissingPeople.DoesNotExist:
+            return
+    except User.DoesNotExist:
+        return
+
+@csrf_exempt
+def addMissing(request):
+    if(request.method == 'POST'):
+        body = json.loads(request.body)
+        uuiId = body['id']
+        res = False
+        try:
+            user = User.objects.get(login=uuiId)
+            res = addMissingForUser(body, user)
+        except User.DoesNotExist:
+            res = addUser(uuiId)
+            if(res):
+                user = User.objects.get(login=uuiId)
+                res = addMissingForUser(body, user)
+        if(res):
+            res = []
+            res.append({"status": "succes"})
+            return JsonResponse(res, safe=False)
+        else:
+            res = []
+            res.append({"status": "error"})
 
 
 def imageToJson(imagePath):
@@ -19,12 +107,25 @@ def getImage(request, imagePath):
     name = imagePath.split(".")
     imagePath = "static/images/" + name[0] + "/" + name[1] + "." + name[2]
     img = Image.open(imagePath)
-    img.save(response, 'png')
-    return response
 
 
+
+    if(name[2]=="png"):
+        response = HttpResponse(content_type="image/png")
+        img.save(response, 'png')
+        return response
+    if(name[2]=="jpg"):
+        response = HttpResponse(content_type="image/png")
+        img.save(response, 'png')
+        return response
+
+def ageToString(dateOfBirth):
+    age = datetime.datetime.now().year - dateOfBirth.year
+    if(dateOfBirth.month > datetime.datetime.now().month):
+        age = age - 1
+    return str(age) + " лет"
 def missingList(request):
-    missing=MissingPeople.objects.all()
+    missing=list(MissingPeople.objects.filter(status="accepted"))
     res = []
     for mis in missing:
         res.append({
@@ -34,19 +135,21 @@ def missingList(request):
             'specCharacteristics': mis.specCharacteristics,
             'characteristics': mis.characteristics,
             'lastLocation': mis.lastLocation,
-            'dateOfBirth': mis.dateOfBirth,
+            'age': ageToString(mis.dateOfBirth),
             'sex': mis.sex,
             'telephone': mis.telephone,
             'imageUrl': imageToJson(str(mis.image.path)),
             'city': str(mis.city.cityName),
+            'status': mis.status,
         })
+    res.reverse()
     return JsonResponse(res, safe=False)
 
 def promosList(request):
     promos=Promo.objects.all()
     res = []
     for promo in promos:
-        if(promo.expirationTime > datetime.datetime.now().date()):
+        if(promo.expirationTime >= datetime.datetime.now(tzinfo).date()):
             res.append({
                 'id': promo.id,
                 'title': promo.title,
@@ -55,39 +158,190 @@ def promosList(request):
                 'imageUrl': imageToJson(str(promo.image.path)),
                 'city': str(promo.city.cityName),
             })
+    res.reverse()
     return JsonResponse(res, safe=False)
 
-def articlesList(request):
+def tagsList(request):
+    tags=Tag.objects.all()
+    res = []
+    for tag in tags:
+        res.append({
+            'id': tag.id + 1,
+            'title': tag.title,
+            'important': tag.important,
+        })
+    return JsonResponse(res, safe=False)
+
+def datetimeToString(dateTime):
+    res = ""
+    if(dateTime.date() == (datetime.datetime.now() + timedelta(hours=3)).date()):
+        res = "Сегодня в "
+        res += str(dateTime.time().hour) + ":" + str(dateTime.time().minute)
+        return res
+    if(dateTime.date() == (datetime.datetime.now() - timedelta(days=1) + timedelta(hours=3)).date()):
+        res = "Вчера в "
+        res += str(dateTime.time().hour) + ":" + str(dateTime.time().minute)
+        return res
+    else:
+        res = ""
+        res += str(dateTime.date().day) + " " + months[str(dateTime.date().month)] + " " + str(dateTime.date().year) + " в "
+        res += str(dateTime.time().hour) + ":" + str(dateTime.time().minute)
+        return res
+    return res
+
+@csrf_exempt
+def articlesList(request, uuiId):
+    favorites = []
+    try:
+        user = User.objects.get(login=uuiId)
+        favorites = list(Favorites.objects.filter(user=user.id))
+    except User.DoesNotExist:
+        favorites = []
     articles=NewsArticles.objects.all()
+    favIds = []
+    for fav in favorites:
+        favIds.append(fav.article.id)
+    list1 = []
+    try:
+        tag = Tag.objects.get(important=1)
+        new = []
+        old = []
+        for article in articles:
+            if(article.creationTime.date() >= datetime.datetime.now().date() + timedelta(hours=3) - timedelta(days=2)):
+                new.append(article)
+            else:
+                old.append(article)
+        new1 = []
+        new2 = []
+        for article in new:
+            if(article.tag.important):
+                new1.append(article)
+            else:
+                new2.append(article)
+        new1.reverse()
+        new2.reverse()
+        old.reverse()
+        new = [*new1, *new2]
+        list1 = [*new, *old]
+    except Tag.DoesNotExist:
+        list1 = [*list1, *articles]
+        list1.reverse()
+
     res = []
-    for article in articles:
+    for article in list1:
+        isFavorite = article.id in favIds
         res.append({
             'id': article.id,
             'title': article.title,
             'content': article.mainText,
-            'creationTime': article.creationTime,
+            'creationTime': datetimeToString(article.creationTime),
             'tag': str(article.tag.title),
             'imageUrl': imageToJson(str(article.image.path)),
             'city': str(article.city.cityName),
+            'isFavorite': isFavorite,
         })
     return JsonResponse(res, safe=False)
 
-def filterArticlesList(request, tag_id):
-    articles=list(NewsArticles.objects.filter(tag=tag_id))
+@csrf_exempt
+def favoritesList(request, uuiId):
+    try:
+        user = User.objects.get(login=uuiId)
+        favorites = list(Favorites.objects.filter(user=user.id))
+        res = []
+        for fav in favorites:
+            res.append({
+                'id': fav.article.id,
+                'title': fav.article.title,
+                'content': fav.article.mainText,
+                'creationTime': datetimeToString(fav.article.creationTime),
+                'tag': str(fav.article.tag.title),
+                'imageUrl': imageToJson(str(fav.article.image.path)),
+                'city': str(fav.article.city.cityName),
+                'isFavorite': True,
+            })
+        res.reverse()
+        return JsonResponse(res, safe=False)
+    except User.DoesNotExist:
+        return
+
+@csrf_exempt
+def userMissingList(request, uuiId):
+    try:
+        user = User.objects.get(login=uuiId)
+        missing=list(MissingPeople.objects.filter(creator=user.id))
+        res = []
+        for mis in missing:
+            if(mis.status == "accepted" or mis.status == "moderating"):
+                res.append({
+                    'id': mis.id,
+                    'name': mis.name,
+                    'clothes': mis.clothes,
+                    'specCharacteristics': mis.specCharacteristics,
+                    'characteristics': mis.characteristics,
+                    'lastLocation': mis.lastLocation,
+                    'age': ageToString(mis.dateOfBirth),
+                    'sex': mis.sex,
+                    'telephone': mis.telephone,
+                    'imageUrl': imageToJson(str(mis.image.path)),
+                    'city': str(mis.city.cityName),
+                    'status': mis.status,
+                })
+        res.reverse()
+        return JsonResponse(res, safe=False)
+    except User.DoesNotExist:
+        return
+
+@csrf_exempt
+def filterArticlesList(request, tagId, uuiId):
+    favorites = []
+    try:
+        user = User.objects.get(login=uuiId)
+        favorites = list(Favorites.objects.filter(user=user.id))
+    except User.DoesNotExist:
+        favorites = []
+    articles=list(NewsArticles.objects.filter(tag=tagId))
+    favIds = []
+    for fav in favorites:
+        favIds.append(fav.article.id)
     res = []
     for article in articles:
+        isFavorite = article.id in favIds
         res.append({
             'id': article.id,
             'title': article.title,
             'content': article.mainText,
-            'creationTime': article.creationTime,
+            'creationTime': datetimeToString(article.creationTime),
             'tag': str(article.tag.title),
             'imageUrl': imageToJson(str(article.image.path)),
             'city': str(article.city.cityName),
+            'isFavorite': isFavorite,
         })
+    res.reverse()
     return JsonResponse(res, safe=False)
 
-
+@csrf_exempt
+def addFavorite(request, articleId, uuiId):
+    try:
+        article = NewsArticles.objects.get(id=articleId)
+        try:
+            user = User.objects.get(login=uuiId)
+            try:
+                fav = Favorites.objects.get(user=user.id, article=articleId)
+                fav.delete()
+            except Favorites.DoesNotExist:
+                fav = Favorites()
+                fav.user = user
+                fav.article = article
+                fav.save()
+        except User.DoesNotExist:
+            addUser(uuiId)
+            user = User.objects.get(login=uuiId)
+            fav = Favorites()
+            fav.user = user
+            fav.article = article
+            fav.save()
+    except NewsArticles.DoesNotExist:
+        return
 
 def TagsToSelect():
     CHOICES = []
@@ -213,6 +467,10 @@ def addnews(request):
                 imgname = sha1((dt_now + image.name).encode('utf-8')).hexdigest()
                 filename = "static/images/articles/" + imgname + "." + name[-1]
                 path = fs.save(filename, image)
+                size = 1020, 800
+                im = Image.open(filename)
+                im.thumbnail(size, Image.ANTIALIAS)
+                im.save(filename, "JPEG")
                 resource = Resources()
                 resource.path = filename
                 resource.save()
@@ -222,7 +480,7 @@ def addnews(request):
                 article.tag = Tag.objects.get(id=tag)
                 article.image = Resources.objects.get(path=filename)
                 article.mainText = text
-                cr_time = datetime.datetime.now().isoformat(' ', 'seconds')
+                cr_time = (datetime.datetime.now() + timedelta(hours=3)).isoformat(' ', 'seconds')
                 article.creationTime = cr_time
                 article.city = City.objects.get(id=request.session['city_id'])
                 article.save()
@@ -261,7 +519,7 @@ def addpromo(request):
                         promo.title = title
                         promo.promocode = code
                         promo.image = Resources.objects.get(path=filename)
-                        cr_time = datetime.datetime.now().isoformat(' ', 'seconds')
+                        cr_time = datetime.datetime.now(tzinfo).isoformat(' ', 'seconds')
                         promo.creationTime = cr_time
                         ex_time = datetime.date(int(expirationYear), int(expirationMonth), int(expirationDay))
                         promo.expirationTime = ex_time

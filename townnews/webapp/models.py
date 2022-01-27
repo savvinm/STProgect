@@ -31,8 +31,13 @@ class Promo(models.Model):
     creationTime = models.DateTimeField()
     expirationTime = models.DateField()
     city = models.ForeignKey(City, on_delete=models.CASCADE)
+    
 class User(models.Model):
-    login = models.CharField(max_length=32)
+    login = models.CharField(max_length=64)
+
+class Favorites(models.Model):
+    article = models.ForeignKey(NewsArticles, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
 
 class MissingPeople(models.Model):
     name = models.CharField(max_length=64)
