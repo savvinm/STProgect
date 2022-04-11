@@ -15,8 +15,9 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
-from django.urls import re_path
+from django.contrib.staticfiles.storage import staticfiles_storage
 from webapp import views
+
 
 urlpatterns = [
     path('acc/<int:id>', views.accept),
@@ -35,7 +36,12 @@ urlpatterns = [
     path('deletemissing/<int:id>/<str:uuiId>', views.deleteMissing),
     path('articleslist/<str:uuiId>', views.articlesList),
     path('addfavorite/<int:articleId>/<str:uuiId>', views.addFavorite),
+    path('getarticle/<int:articleId>/<str:uuiId>', views.articleById),
+    path('article/<int:articleId>', views.openArticle),
     path('missinglist', views.missingList),
     path('addmissing', views.addMissing),
+    path('deferred/a/<int:articleId>', views.deferredArticle),
+    path('openapp', views.openApp),
+    path('appinit/<str:iOSVersion>/<str:uuiId>', views.appInit),
     path('', views.index),
 ]

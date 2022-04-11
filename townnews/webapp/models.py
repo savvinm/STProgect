@@ -35,6 +35,20 @@ class Promo(models.Model):
 class User(models.Model):
     login = models.CharField(max_length=64)
 
+class DeferredLinks(models.Model):
+    task = models.CharField(max_length=64)
+    address = models.CharField(max_length=64)
+    platform = models.CharField(max_length=256)
+    creationTime = models.DateTimeField()
+    status = models.CharField(max_length=16)
+
+class AppInit(models.Model):
+    address = models.CharField(max_length=64)
+    platform = models.CharField(max_length=32)
+    lastInit = models.DateTimeField()
+    uuiId = models.CharField(max_length=64)
+
+
 class Favorites(models.Model):
     article = models.ForeignKey(NewsArticles, on_delete=models.CASCADE)
     user = models.ForeignKey(User, on_delete=models.CASCADE)

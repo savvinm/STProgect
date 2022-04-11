@@ -1,0 +1,22 @@
+{% load static %}
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta property="og:site_name" content="TownNews">
+    <meta property="og:title" content="{{title}}"/>
+    <meta property="og:image" content="https://townnews.site/getimage/{{imagePath}}"/>
+    <meta property="og:description" content="{{description}}"/>
+    <meta property="article:published_time" content="{{publishedTime}}" />
+    <link rel="shortcut icon" href="{% static 'favicon.ico' %}"/>
+</head>
+<script>
+    articleId = {{articleId}};
+    if ((navigator.userAgent.match(/iPhone/i)) || (navigator.userAgent.match(/iPod/i))) {
+        location.replace(`townnews.app://news/${articleId}`);
+        setTimeout(function() {
+            if (!document.webkitHidden) {
+                location.replace(`https://townnews.site/deferred/a/${articleId}`);
+            }
+        }, 500);}
+</script>
+</html>

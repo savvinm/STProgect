@@ -2,20 +2,125 @@ from django.shortcuts import render, redirect
 from django.core.files.storage import FileSystemStorage
 from django.core.files.base import ContentFile
 from django.views.decorators.csrf import csrf_exempt
-from django.http import HttpResponse, HttpResponseNotFound, Http404, HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseNotFound, Http404, HttpResponseRedirect, HttpResponsePermanentRedirect
 from .forms import LoginForm, NewsForm, PromoForm, TagForm
-from .models import Admin, Resources, NewsArticles, City, Promo, Tag, MissingPeople, User, Favorites
+from .models import Admin, Resources, NewsArticles, City, Promo, Tag, MissingPeople, User, Favorites, DeferredLinks, AppInit
 from hashlib import sha256, sha1
 from django.http import JsonResponse
 from PIL import Image, ExifTags
 import datetime
 import json
 import base64
+import textwrap
 from datetime import timezone, timedelta
 
 timezone_offset = +3.0
 tzinfo = timezone(timedelta(hours=timezone_offset))
 months = {'1': "января",'2': "февраля",'3': "марта",'4': "апреля",'5': "мая",'6': "июня",'7': "июля",'8': "августа",'9': "сентября",'10': "октября",'11': "ноября",'12': "декабря"}
+
+def isEqualIOS(iOSVersion, platform):
+    keys = platform.split(' ')
+    version = ""
+    for i in range(len(keys)):
+        if (keys[i] == "OS" and i < len(keys) - 1):
+            if keys[i-1] == "iPhone":
+                version = keys[i+1]
+                break
+    if version != "":
+        version = version.replace('_','.')
+        if version == iOSVersion:
+            return True
+    return False
+
+
+def findTask(address, iOSVersion):
+    tasks = list(DeferredLinks.objects.filter(address=address).filter(status="created"))
+    if not tasks:
+        return "none"
+    else:
+        tasks.reverse()
+        for task in tasks:
+            if isEqualIOS(iOSVersion, task.platform):
+                dif = datetime.datetime.now().timestamp() - task.creationTime.timestamp()
+                if (dif < 1200.0):
+                    return task
+    return "none"
+
+def addOrUpdateInit(address, iOSVersion, uuiId):
+    try:
+        init = AppInit.objects.get(address=address, platform=iOSVersion, uuiId=uuiId)
+        init.lastInit = datetime.datetime.now()
+        init.save()
+    except AppInit.DoesNotExist:
+        init = AppInit()
+        init.address = address
+        init.platform = iOSVersion
+        init.uuiId = uuiId
+        init.lastInit = datetime.datetime.now()
+        init.save()
+
+@csrf_exempt
+def appInit(request, iOSVersion, uuiId):
+    address = request.META['REMOTE_ADDR']
+    addOrUpdateInit(address, iOSVersion, uuiId)
+    task = findTask(address, iOSVersion)
+    if task != "none":
+        task.status = "opened"
+        task.save()
+        res = {
+                'task': task.task,
+            }
+        return JsonResponse(res, safe=False)
+
+
+@csrf_exempt
+def checkInit(address, platform):
+    inits = list(AppInit.objects.filter(address=address))
+    if not inits:
+        return False
+    else:
+        for init in inits:
+            if isEqualIOS(init.platform, platform):
+                dif = datetime.datetime.now().timestamp() - init.lastInit.timestamp()
+                if (dif < 2592000.0):
+                    return True
+    return False
+
+@csrf_exempt
+def deferredArticle(request, articleId):
+    meta = request.META
+    if not checkInit(meta['REMOTE_ADDR'], meta['HTTP_USER_AGENT']):
+        task = DeferredLinks()
+        task.platform = meta['HTTP_USER_AGENT']
+        task.address = meta['REMOTE_ADDR']
+        task.task = "article/" + str(articleId)
+        task.status = "created"
+        task.creationTime = datetime.datetime.now()
+        task.save()
+        response = HttpResponse("", status=302)
+        response['Location'] = "https://google.com"
+        return response
+
+@csrf_exempt
+def openApp(request):
+    info = request.META['HTTP_USER_AGENT']
+    if "iPhone" in info:
+        response = HttpResponse("", status=302)
+        response['Location'] = "townnews.app://"
+        return response
+    raise Http404()
+
+@csrf_exempt
+def openArticle(request, articleId):
+    try:
+        article = NewsArticles.objects.get(id=articleId)
+        imagePath = imageToJson(str(article.image.path))
+        title = article.title
+        body = textwrap.shorten(article.mainText, width=190, placeholder="...")
+        publishedTime = article.creationTime
+        return render(request, "openArticle.html", {"articleId": articleId, "imagePath": imagePath, "title": title, "description": body, "publishedTime": publishedTime})
+    except NewsArticles.DoesNotExist:
+        raise Http404()
 
 @csrf_exempt
 def addMissingForUser(body, user):
@@ -107,17 +212,9 @@ def getImage(request, imagePath):
     name = imagePath.split(".")
     imagePath = "static/images/" + name[0] + "/" + name[1] + "." + name[2]
     img = Image.open(imagePath)
-
-
-
-    if(name[2]=="png"):
-        response = HttpResponse(content_type="image/png")
-        img.save(response, 'png')
-        return response
-    if(name[2]=="jpg"):
-        response = HttpResponse(content_type="image/png")
-        img.save(response, 'png')
-        return response
+    response = HttpResponse(content_type="image/png")
+    img.save(response, 'png')
+    return response
 
 def ageToString(dateOfBirth):
     age = datetime.datetime.now().year - dateOfBirth.year
@@ -241,6 +338,33 @@ def articlesList(request, uuiId):
             'isFavorite': isFavorite,
         })
     return JsonResponse(res, safe=False)
+
+@csrf_exempt
+def articleById(request, articleId, uuiId):
+    try:
+        article = NewsArticles.objects.get(id=articleId)
+        isFavorite = False
+        try:
+            user = User.objects.get(login=uuiId)
+            favorites = list(Favorites.objects.filter(user=user.id))
+            for fav in favorites:
+                if fav.article.id == article.id:
+                    isFavorite = True
+        except User.DoesNotExist:
+            isFavorite = False
+        res = {
+                'id': article.id,
+                'title': article.title,
+                'content': article.mainText,
+                'creationTime': datetimeToString(article.creationTime),
+                'tag': str(article.tag.title),
+                'imageUrl': imageToJson(str(article.image.path)),
+                'city': str(article.city.cityName),
+                'isFavorite': isFavorite,
+            }
+        return JsonResponse(res, safe=False)
+    except NewsArticles.DoesNotExist:
+        return
 
 @csrf_exempt
 def favoritesList(request, uuiId):
