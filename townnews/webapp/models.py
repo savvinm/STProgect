@@ -18,6 +18,7 @@ class Tag(models.Model):
 
 class NewsArticles(models.Model):
     title = models.CharField(max_length=128)
+    photoAuthor = models.CharField(max_length=64)
     tag = models.ForeignKey(Tag, on_delete=models.CASCADE)
     image = models.ForeignKey(Resources, on_delete=models.CASCADE)
     mainText = models.TextField()
@@ -31,7 +32,6 @@ class Promo(models.Model):
     creationTime = models.DateTimeField()
     expirationTime = models.DateField()
     city = models.ForeignKey(City, on_delete=models.CASCADE)
-    
 class User(models.Model):
     login = models.CharField(max_length=64)
 

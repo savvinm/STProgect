@@ -10,6 +10,7 @@ class NewsForm(forms.Form):
     title = forms.CharField(widget=forms.TextInput(attrs={'placeholder': 'Заголовок'}))
     tag = forms.ChoiceField()
     image = forms.ImageField()
+    photoAuthor = forms.CharField(widget=forms.TextInput(attrs={'placeholder': 'Источник фото'}))
     text = forms.CharField(widget=forms.Textarea(attrs={'placeholder': 'Текст записи'}))
 
 class PromoForm(forms.Form):

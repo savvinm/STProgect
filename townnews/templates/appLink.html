@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+{% load static %}
+<html>
+<head>
+    <meta charset="utf-8" />
+    <link rel="shortcut icon" href="{% static 'favicon.ico' %}"/>
+    <title>TownNews.site</title>
+</head>
+<body>
+  {% include "header.html" %}
+  <div class="container">
+    <div class="nav_options">
+      <a href="addnews">Добавить новость</a>
+      <a href="addpromo">Добавить промо</a>
+      <a href="newadverts">Просмотр новых объявлений</a>
+      <p class="advertsCountText">Объявлений ожидающих рассмотрения: {{advertsCount}}<p>
+    </div>
+  </div>
+</body>
+</html>

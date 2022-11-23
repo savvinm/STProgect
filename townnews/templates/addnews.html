@@ -5,6 +5,7 @@
     <meta charset="utf-8" />
     <link rel="stylesheet" href="{% static "css/main.css"%}"/>
     <link rel="stylesheet" href="{% static "css/add.css"%}"/>
+    <link rel="shortcut icon" href="{% static 'favicon.ico' %}"/>
     <title>Добавление новости</title>
 </head>
   {% include "header.html" %}
@@ -23,6 +24,9 @@
           </div>
           <div class="addfield">
             <div>{{form.image}}</div>
+          </div>
+          <div class="addfield">
+            <div>{{form.photoAuthor}}</div>
           </div>
           <div class="addfield">
             <div>{{form.text}}</div>

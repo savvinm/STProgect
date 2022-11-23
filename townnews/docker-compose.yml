@@ -1,0 +1,44 @@
+version: "3.8"
+services:
+  webapp:
+    build: .
+    image: townnews_web:v1
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_USER: root
+      MYSQL_PASSWORD: secret
+      MYSQL_DB: townnewsDB
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: [ "CMD", "ls"]
+      interval: 10s
+      timeout: 10s
+    depends_on:
+      - mysql
+
+  mysql:
+    image: mysql:5.7
+    volumes:
+      - townnews-mysql-data:/var/lib/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: secret
+      MYSQL_DATABASE: townnewsDB
+    healthcheck:
+      test: [ "CMD", "ls" ]
+      interval: 10s
+      timeout: 10s
+
+  phpmyadmin:
+    image: phpmyadmin
+    ports:
+      - 8080:80
+    environment:
+      - PMA_ARBITRARY=1
+    healthcheck:
+      test: [ "CMD", "ls" ]
+      interval: 10s
+      timeout: 10s
+
+volumes:
+  townnews-mysql-data:

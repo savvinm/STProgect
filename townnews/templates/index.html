@@ -4,6 +4,7 @@
 <head>
     <meta charset="utf-8" />
     <link rel="stylesheet" href="{% static "css/main.css"%}"/>
+    <link rel="shortcut icon" href="{% static 'favicon.ico' %}"/>
     <title>Панель администратора</title>
 </head>
 <body>
@@ -15,7 +16,7 @@
         <div class="">
           <div class="addfield">
             {% if isTag %}
-              <div class="short_select">{{form.tag}} <a class="clean_link" href="/cleaner"><img class="cross_logo" src="/static/images/cross.png" width="20" height="20"></a></div>
+              <div class="short_select">{{form.tag}} <a class="clean_link" href="/cleaner"><img class="cross_logo" src="{% static "images/cross.png"%}" width="20" height="20"></a></div>
             {% else %}
               <div class="long_select">{{form.tag}}</div>
             {% endif %}
