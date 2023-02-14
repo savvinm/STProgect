@@ -1,9 +1,6 @@
 # Town News
-### [Mobile here](https://github.com/savvinm/TownNews-Mobile)
 ### Приложение региональных новостей
-- **savvinm** - Максим Саввин <br>
-- **kadmiy1** - Дмитрий Кальченко<br>
-
+### [Код мобильного приложения](https://github.com/savvinm/TownNews-Mobile)
 
 # Макеты приложения
 [Веб сайт](https://www.figma.com/proto/bS3WN7hbUzdXGCH3PDTtRK/%D0%A2%D0%9F?node-id=13%3A90&scaling=scale-down&page-id=11%3A89&starting-point-node-id=13%3A90)
